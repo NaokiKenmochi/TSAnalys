@@ -80,6 +80,7 @@ class RSCalib:
         for ils in range(self.nlaser):
             rs_mean[:, :, ils] = np.mean(rs_data[:, :, :, ils], axis = 0)
         power_mean = np.mean(power, axis = 0)
+        pcof = np.mean(power_mean, axis = 0)
         rs_per_power = rs_mean/power_mean
         A = np.vstack([self.N2Pressure, np.ones(len(self.N2Pressure))]).T
         for ils in range(self.nlaser):
@@ -93,7 +94,7 @@ class RSCalib:
         #plt.plot(rs_per_power[:, :, 1])
         #plt.plot(calibfact)
         #plt.show()
-        return calibfact
+        return calibfact, pcof
 
     def load_raman(self):
         """ラマン散乱データの読み出し

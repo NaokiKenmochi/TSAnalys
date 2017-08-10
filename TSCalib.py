@@ -72,13 +72,16 @@ class TSCalib:
         self.LOADorCALC = LOADorCALC    #新たに較正データを読み込むか，計算済みのデータを読み込むか
         self.tfp = 2.0  #較正時の閾値
         self.pnconv = 9.6564e5
+        self.m = 2
 
     def main(self):
-        relte = self.cnt_photon_ltdscp()
+        clbdata, relte = self.cnt_photon_ltdscp()
         dTdR = self.cal_dTdR(relte)
         coft, cof = self.cal_cof(dTdR)
 
         np.savez("coft_cof_relte", coft=coft, cof=cof, relte=relte)
+
+        self.calc_calib(clbdata)
 
         return coft, cof, relte
 
@@ -123,6 +126,7 @@ class TSCalib:
         """
         light_power = np.loadtxt(self.PATH + self.FILE_NAME)
         light_power = light_power[np.newaxis, :]
+        clbdata = self.clb_wo_offset()
         clbdata = clbdata / light_power.T
         #plt.plot(clbdata[:,1])
         #plt.show()
@@ -202,7 +206,7 @@ class TSCalib:
 #        plt.plot(relte[79, :])
         #plt.show()
         #rrelte = self.make_ratio_relte(relte)
-        return relte
+        return clbdata, relte
 
     def differ(self, data, n, dx, ddata):
         """差分を計算
@@ -233,19 +237,165 @@ class TSCalib:
 
         return coft, cof
 
-    def calc_calib(self):
+    def calc_calib(self, clbdata):
+        tfp = 2.0   #threshold parameter
         numfil = np.zeros((self.maxch, self.maxlaser))
         numfil = self.nlaser
         calib = np.zeros((self.maxch, self.maxlaser))
         sramd = np.arange(685, 1124, 1)
         RSC = RSCalib()
-        calibfac = RSC.calib_Raman()
+        calibfac, pcof = RSC.calib_Raman()
         calib = np.where(numfil == 0, calibfac, 0)
-        np.where(np.abs(calibfac < 1.02-30, 0, self.pnconv/calibfac/self.tt))
+        np.where(np.abs(calibfac) < 1.02-30, 0, self.pnconv/calibfac/self.tt)
+        cross = self.get_cross()
+        ramd_max, ramd_min = self.set_ramd_range()
+        clbdata = clbdata[:, :self.maxdata-10].reshape((self.maxword, self.maxch, self.nfil+1))   #(Adata[:, :150], (3, 6, 25))
+        dfilter = self.red_filter(clbdata, sramd)
 
+        calib = 0.0
+        for ilaser in range(self.nlaser):
+            for ich in range(self.maxch):
+                for iline in range(len(cross[:,0])):
+                    p = self.getNearestValue(sramd, cross[iline, 2])
+                    temp = calibfac[ich, ilaser] * cross[iline, 1]
+                    if(numfil[ich, ilaser] != 0):
+                        rmin = ramd_min[0, ich]
+                        rmax = ramd_max[0, ich]
+                        if(cross[iline, 2] < rmin or cross[iline, 2] > rmax):
+                            temp = 0.0
+                        else:
+                            tempf = self.splint(sramd, clbdata, dfilter, self.maxword, cross[iline, 2])
+                            temp *= clbdata[p, ich, 0]
+                            if(tempf < tfp):
+                                tempf = 0.0
+                                temp *= tempf
+                        temp /= self.poly(pcof, self.m, cross[iline, 2])
+                        calib[ich, ilaser] += temp
+
+        return calib
+
+
+    def red_filter(self, clbdata, sramd):
+        dfilter = np.zeros((self.maxword, self.maxch, self.nfil+1))
+        for ich in range(self.maxch):
+            yp1 = 0.0
+            ypn = 0.0
+            for ifil in range(self.nfil):
+                 self.spline(sramd, clbdata[:, ich, ifil], yp1, ypn, dfilter[:, ich, ifil])
+
+        return dfilter
+
+
+    def poly(self, coef, n, x):
+        poly = 0.0
+        for i in range(n):
+            poly += coef[i]*x**i
+
+        return poly
+
+
+    def splint(self, xa, ya, y2a, n, x):
+        klo = 0
+        khi = n
+        while khi - klo > 0:
+            k = (khi + klo)/2
+            if(xa[k] > x):
+                khi = k
+            else:
+                klo = k
+
+        h = xa[khi] - xa[klo]
+        a = (xa[khi] - x)/h
+        b = (x - xa[klo])/h
+        if(np.abs(y2a[klo]) > 1.0e33):
+            y = (ya[klo] + ya[khi])/2.0
+
+        y = a*ya[klo] + b*ya[khi] + ((a**3 - a)*y2a[klo] + (b**3-b)*y2a[khi])*h**2/6.0
+
+        return y
+
+
+    def spline(self, x, y, n, yp1, ypn, y2):
+        u = x
+        if(yp1 > 0.99e30):
+            y2[0] = 0.0
+            u[0] = 0.0
+        else:
+            y2[0] = -0.5
+            u[0] = (3.0/(x[1] - x[0]))*((y[1] - y[0])/(x[1] - x[0]) - yp1)
+
+        sig = (x[1:n-2] - x[0:n-3])/(x[2:n-1] - x[0:n-3])
+        p = sig*y2[0:n-3] + 2.0
+        y2[1:n-2] = (sig - 1.0)/p
+        u[1:n-2] = (y[2:n-1] - y[1:n-2])/(x[2:n-1] - x[1:n-2]) - (y[1:n-2] - y[0:n-3])/(x[1:n-2] - x[0:n-3])
+        u[1:n-2] = (6.0*u[1:n-2]/(x[2:n-1] - x[0:n-3]) - sig*u[0:n-3])/p
+
+        if(ypn > 0.99e30):
+            qn = 0.0
+            un = 0.0
+        else:
+            qn = 0.5
+            un = (3.0/(x[n-1] - x[n-2]))*(ypn - (y[n-1] - y[n-2])/(x[n-1] - x[n-2]))
+
+        y2[n-1] = (un - qn*u[n-2])/(qn*y2[n-2] + 1.0)
+
+        y2[0:n-2] = y2[0:n-2]*y2[1:n-1] + u[0:n-2]
+
+
+    def get_cross(self):
+        """
+        窒素のラマン散乱ラインを読み込む
+        :return:
+        cross[:, 1]: 散乱断面積
+        cross[:, 2]: 波長
+        """
+        file_path = ""
+        file_name = "cross.dat"
+        cross = np.loadtxt("cross.dat", skiprows=3)
+
+        #plt.plot(cross[:, 2], cross[:, 1])
+        #plt.show()
+
+        return cross
+
+
+    def getNearestValue(self, list, num):
+        """
+        概要: リストからある値に最も近い値を返却する関数
+        ThAnalysTeNe.pyにも同じ関数あり
+        @param list: データ配列
+        @param num: 対象値
+        @return 対象値に最も近い値
+        """
+
+        # リスト要素と対象値の差分を計算し最小値のインデックスを取得
+        buf_list = np.where(list != list, 0, list)
+        #idx = np.abs(np.asarray(list[10:]) - num).argmin()
+        #idx = np.abs(np.asarray(list) - num).argmin()
+        idx = np.abs(np.asarray(buf_list) - num).argmin()
+        return idx  #list[idx]
+
+    def set_ramd_range(self):
+        ramd_max = np.zeros((self.nfil, self.maxch))
+        ramd_min = np.zeros((self.nfil, self.maxch))
+
+        ramd_max[0, :] = 1060
+        ramd_max[1, :] = 1025
+        ramd_max[2, :] = 845
+        ramd_max[3, :] = 1048
+        ramd_max[4, :] = 964
+
+        ramd_min[0, :] = 1050
+        ramd_min[1, :] = 952
+        ramd_min[2, :] = 696
+        ramd_min[3, :] = 1022
+        ramd_min[4, :] = 840
+
+        return ramd_max, ramd_min
 
 if __name__ == "__main__":
     test = TSCalib(LOADorCALC="LOAD")
     test.main()
+    test.get_cross()
 
     print("Successfully Run the program !!")
