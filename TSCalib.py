@@ -2,6 +2,7 @@ import numpy as np
 from scipy import integrate
 from RSCalib import RSCalib
 import matplotlib.pyplot as plt
+np.seterr(divide='ignore', invalid='ignore')
 
 class TSCalib:
     """トムソン較正用クラス
@@ -239,10 +240,10 @@ class TSCalib:
 
     def calc_calib(self, clbdata):
         tfp = 2.0   #threshold parameter
-        numfil = np.zeros((self.maxch, self.maxlaser))
-        numfil = self.nlaser
+        numfil = np.ones((self.maxch, self.maxlaser))
+        numfil *= self.nlaser
         calib = np.zeros((self.maxch, self.maxlaser))
-        sramd = np.arange(685, 1124, 1)
+        sramd = np.arange(self.init_wlength, self.init_wlength+self.maxword, 1)
         RSC = RSCalib()
         calibfac, pcof = RSC.calib_Raman()
         calib = np.where(numfil == 0, calibfac, 0)
@@ -252,7 +253,7 @@ class TSCalib:
         clbdata = clbdata[:, :self.maxdata-10].reshape((self.maxword, self.maxch, self.nfil+1))   #(Adata[:, :150], (3, 6, 25))
         dfilter = self.red_filter(clbdata, sramd)
 
-        calib = 0.0
+        calib[:, :] = 0.0
         for ilaser in range(self.nlaser):
             for ich in range(self.maxch):
                 for iline in range(len(cross[:,0])):
@@ -264,13 +265,13 @@ class TSCalib:
                         if(cross[iline, 2] < rmin or cross[iline, 2] > rmax):
                             temp = 0.0
                         else:
-                            tempf = self.splint(sramd, clbdata, dfilter, self.maxword, cross[iline, 2])
+                            tempf = self.splint(sramd, clbdata[:, ich, 0], dfilter[:, ich, 0], self.maxword, cross[iline, 2])
                             temp *= clbdata[p, ich, 0]
                             if(tempf < tfp):
                                 tempf = 0.0
                                 temp *= tempf
                         temp /= self.poly(pcof, self.m, cross[iline, 2])
-                        calib[ich, ilaser] += temp
+                        calib[ich, ilaser] = calib[ich, ilaser] + temp
 
         return calib
 
@@ -281,7 +282,7 @@ class TSCalib:
             yp1 = 0.0
             ypn = 0.0
             for ifil in range(self.nfil):
-                 self.spline(sramd, clbdata[:, ich, ifil], yp1, ypn, dfilter[:, ich, ifil])
+                 self.spline(sramd, clbdata[:, ich, ifil], self.maxword, yp1, ypn, dfilter[:, ich, ifil])
 
         return dfilter
 
@@ -297,8 +298,8 @@ class TSCalib:
     def splint(self, xa, ya, y2a, n, x):
         klo = 0
         khi = n
-        while khi - klo > 0:
-            k = (khi + klo)/2
+        while khi - klo > 1:
+            k = (khi + klo)/2.0
             if(xa[k] > x):
                 khi = k
             else:
@@ -320,7 +321,8 @@ class TSCalib:
         if(yp1 > 0.99e30):
             y2[0] = 0.0
             u[0] = 0.0
-        else:
+        #else:
+        elif(x[1]-x[0] != 0):
             y2[0] = -0.5
             u[0] = (3.0/(x[1] - x[0]))*((y[1] - y[0])/(x[1] - x[0]) - yp1)
 
