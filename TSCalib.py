@@ -2,6 +2,7 @@ import numpy as np
 from scipy import integrate
 from RSCalib import RSCalib
 import matplotlib.pyplot as plt
+import math
 np.seterr(divide='ignore', invalid='ignore')
 
 class TSCalib:
@@ -66,7 +67,10 @@ class TSCalib:
         self.i1 = np.array([0, 0, 0, 0, 3, 3, 3, 1, 1, 4])
         self.i2 = np.array([3, 1, 4, 2, 1, 4, 2, 4, 2, 2])
         self.num_ratio = int((self.nfil - 1) * self.nfil / 2)  # チャンネルの信号比の組み合わせ数
-        self.te = np.exp(np.log(10000) * np.arange(self.ntct)/99)  # 計算温度範囲[eV] ntctと同数
+        self.temax = 10000  #[eV]
+        self.temin = 10 #[eV]
+        self.te = np.exp(np.log(self.temax) * np.arange(self.ntct)/(self.ntct-1))  # 計算温度範囲[eV] ntctと同数
+        self.nte = np.exp(np.log(self.temax) * np.arange(self.nrat)/(self.nrat-1))  # 計算温度範囲[eV] nratと同数
         #self.PATH = '/Users/kemmochi/SkyDrive/Document/Study/Thomson/DATE/Polychrometer/Data/data of polychrometors for calibration/2016/'
         self.PATH = ''
         self.FILE_NAME = 'w_for_alignment_Aug2016.txt'
@@ -75,14 +79,23 @@ class TSCalib:
         self.pnconv = 9.6564e5
         self.m = 2
 
+
     def main(self):
-        clbdata, relte = self.cnt_photon_ltdscp()
+        intrelne = np.zeros((self.nrat, self.nfil, self.maxch))
+        cofne = np.zeros(self.nrat, self.nfil, self.maxch, self.maxlaser)
+        ecofne = np.zeros(self.nrat, self.nfil, self.maxch, self.maxlaser)
+        clbdata, relte, relne = self.cnt_photon_ltdscp()
         dTdR = self.cal_dTdR(relte)
         coft, cof = self.cal_cof(dTdR)
 
         np.savez("coft_cof_relte", coft=coft, cof=cof, relte=relte)
 
         self.calc_calib(clbdata)
+
+        for ich in range(self.maxch):
+            self.interp_relne(relne[:, :, ich], intrelne[:, :, ich])
+            for ilaser in range(self.nlaser):
+                self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
 
         return coft, cof, relte
 
@@ -197,6 +210,8 @@ class TSCalib:
                         relte[j, k, i] = np.nan
                     else:
                         relte[j, k, i] = int_clbdata[j, self.i1[k], i]/int_clbdata[j, self.i2[k], i]
+
+        relne = np.abs(int_clbdata)
         #        return int_clbdata
 #        plt.ylim(0, 1e3)
         #plt.plot(rrelte[:, 50])
@@ -207,7 +222,7 @@ class TSCalib:
 #        plt.plot(relte[79, :])
         #plt.show()
         #rrelte = self.make_ratio_relte(relte)
-        return clbdata, relte
+        return clbdata, relte, relne
 
     def differ(self, data, n, dx, ddata):
         """差分を計算
@@ -317,7 +332,7 @@ class TSCalib:
 
 
     def spline(self, x, y, n, yp1, ypn, y2):
-        u = x
+        u = np.zeros(len(x))
         if(yp1 > 0.99e30):
             y2[0] = 0.0
             u[0] = 0.0
@@ -394,6 +409,91 @@ class TSCalib:
         ramd_min[4, :] = 840
 
         return ramd_max, ramd_min
+
+    def interp_relne(self, relne):
+        maxntct = 2000
+        maxnrat = 3000
+        yp1 = 1.0e31
+        ypn = 1.0e31
+        relne2 = np.zeros(maxntct)
+        intlelne = np.zeros((self.nrat, self.nfil))
+
+        for ifil in range(self.nfil):
+            self.spline(self.te, relne[:, ifil], self.ntct, yp1, ypn, relne2)
+            for nr in range(self.nrat):
+                self.splint(self.te, relne[:, ifil], relne2, self.ntct, self.nte[nr], intrelne[nr, ifil])
+
+    def cal_ne_cof(self, intrelne, calib, cofne, ecofne):
+        YAGRAMD = 1064.0
+        MAXNRAT = 3000
+
+        temp1 = self.cross_ram()*calib
+        temp2 = intrelne*self.qt()*self.cof_K2()/YAGRAMD
+        cofne = temp1/temp2
+
+        dx = self.te[1] - self.te[0]
+        for ifil in range(self.nfil):
+            self.differ(cofne[:, ifil], self.nrat, dx, ecofne[:, ifil])
+
+
+
+    def cross_ram(self):
+        dc2 = np.cos(self.inj_angle)**2
+        temp = 3.0/(80.0*np.pi)
+        temp *= 6.0+dc2
+
+        return temp
+
+    def qt(self):
+        mc2 = 511.0
+
+        it = mc2/self.te
+        beta = np.sqrt(1.0/it)
+        is_ = np.cos(self.inj_angle)
+        se = self.cos(-np.pi/2,0 + self.inj_angle)
+        si2 = self.sin(-np.pi/2,0 + self.inj_angle)**2
+
+        temp = 2.0 * beta * se * (1.0 - is_ - se)
+
+        return np.abs(si2 + temp)
+
+    def cof_K2(self):
+        mc2 = 511.0
+        it = mc1/self.te
+
+        return 1.0/(2.0*self.bess_K2de(it))
+
+    def bess_K2de(self, x):
+        coef = np.sqrt(np.pi/2.0/x)
+        for i in range(6):
+            body = self.gan(i+2)/self.gan(2-i)
+            body /= math.factorial(i)
+            body /= (2.0*x)**i
+            temp += body
+
+        return temp * coef
+
+    def gan(self, n):
+        if n > 0:
+            return self.ganpl(n)
+        else:
+            return self.ganmn(n)
+
+    def ganmn(self, n):
+        temp = math.factorial(n)
+        temp /= math.factorial(2*n)
+        temp *= (-4.0)**(2*n)
+
+        return temp
+
+    def ganpl(self, n):
+        temp = math.factorial(2*n)
+        temp /= math.factorial(n)
+        temp /= 2.0**(2*n)
+
+        return temp
+
+
 
 if __name__ == "__main__":
     test = TSCalib(LOADorCALC="LOAD")
