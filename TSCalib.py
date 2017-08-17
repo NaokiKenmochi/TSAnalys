@@ -70,7 +70,7 @@ class TSCalib:
         self.temax = 10000  #[eV]
         self.temin = 10 #[eV]
         self.te = np.exp(np.log(self.temax) * np.arange(self.ntct)/(self.ntct-1))  # 計算温度範囲[eV] ntctと同数
-        self.nte = np.exp(np.log(self.temax) * np.arange(self.nrat)/(self.nrat-1))  # 計算温度範囲[eV] nratと同数
+        self.nte = self.cal_Te(self.nrat)   #np.exp(np.log(self.temax) * np.arange(self.nrat)/(self.nrat-1))  # 計算温度範囲[eV] nratと同数
         #self.PATH = '/Users/kemmochi/SkyDrive/Document/Study/Thomson/DATE/Polychrometer/Data/data of polychrometors for calibration/2016/'
         self.PATH = ''
         self.FILE_NAME = 'w_for_alignment_Aug2016.txt'
@@ -82,8 +82,8 @@ class TSCalib:
 
     def main(self):
         intrelne = np.zeros((self.nrat, self.nfil, self.maxch))
-        cofne = np.zeros(self.nrat, self.nfil, self.maxch, self.maxlaser)
-        ecofne = np.zeros(self.nrat, self.nfil, self.maxch, self.maxlaser)
+        cofne = np.zeros((self.nrat, self.nfil, self.maxch, self.maxlaser))
+        ecofne = np.zeros((self.nrat, self.nfil, self.maxch, self.maxlaser))
         clbdata, relte, relne = self.cnt_photon_ltdscp()
         dTdR = self.cal_dTdR(relte)
         coft, cof = self.cal_cof(dTdR)
@@ -211,7 +211,7 @@ class TSCalib:
                     else:
                         relte[j, k, i] = int_clbdata[j, self.i1[k], i]/int_clbdata[j, self.i2[k], i]
 
-        relne = np.abs(int_clbdata)
+        relne = np.abs(int_clbdata[:, :self.nfil, :]).reshape((self.ntct, self.nfil, self.maxch))
         #        return int_clbdata
 #        plt.ylim(0, 1e3)
         #plt.plot(rrelte[:, 50])
@@ -410,18 +410,17 @@ class TSCalib:
 
         return ramd_max, ramd_min
 
-    def interp_relne(self, relne):
+    def interp_relne(self, relne, intrelne):
         maxntct = 2000
         maxnrat = 3000
         yp1 = 1.0e31
         ypn = 1.0e31
         relne2 = np.zeros(maxntct)
-        intlelne = np.zeros((self.nrat, self.nfil))
 
         for ifil in range(self.nfil):
             self.spline(self.te, relne[:, ifil], self.ntct, yp1, ypn, relne2)
             for nr in range(self.nrat):
-                self.splint(self.te, relne[:, ifil], relne2, self.ntct, self.nte[nr], intrelne[nr, ifil])
+                intrelne[nr, ifil] = self.splint(self.te, relne[:, ifil], relne2, self.ntct, self.nte[nr])
 
     def cal_ne_cof(self, intrelne, calib, cofne, ecofne):
         YAGRAMD = 1064.0
@@ -450,8 +449,8 @@ class TSCalib:
         it = mc2/self.te
         beta = np.sqrt(1.0/it)
         is_ = np.cos(self.inj_angle)
-        se = self.cos(-np.pi/2,0 + self.inj_angle)
-        si2 = self.sin(-np.pi/2,0 + self.inj_angle)**2
+        se = np.cos(-np.pi/2.0 + self.inj_angle)
+        si2 = np.sin(-np.pi/2.0 + self.inj_angle)**2
 
         temp = 2.0 * beta * se * (1.0 - is_ - se)
 
@@ -459,7 +458,7 @@ class TSCalib:
 
     def cof_K2(self):
         mc2 = 511.0
-        it = mc1/self.te
+        it = mc2/self.te
 
         return 1.0/(2.0*self.bess_K2de(it))
 
@@ -492,6 +491,12 @@ class TSCalib:
         temp /= 2.0**(2*n)
 
         return temp
+
+    def cal_Te(self, n):
+
+        dte = (self.temax - self.temin)/(n-1)
+
+        return np.arange(self.temin, self.temax + dte, dte)
 
 
 
