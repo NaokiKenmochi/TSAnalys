@@ -123,15 +123,27 @@ class ThAnalysTeNe():
         グラフ化はmultiplot(self)を実効
         :return:
         """
-        cofne = np.zeros((self.nrat, self.nfil, self.maxch, self.nlaser))
-        ecofne = np.zeros((self.nrat, self.nfil, self.maxch, self.nlaser))
+        if(self.CALIBorLOAD == 'CALIB'):
+            from TSCalib import TSCalib
+            TSC = TSCalib("LOAD")
+            coft, cof, relte, cofne, ecofne = TSC.main()
+        else:
+            coft_cof_relte_cofne_ecofne = np.load("coft_cof_relte_cofne_ecofne.npz")
+            coft = coft_cof_relte_cofne_ecofne["coft"]
+            cof = coft_cof_relte_cofne_ecofne["cof"]
+            relte = coft_cof_relte_cofne_ecofne["relte"]
+            cofne = coft_cof_relte_cofne_ecofne["cofne"]
+            ecofne = coft_cof_relte_cofne_ecofne["ecofne"]
+
+#        cofne = np.zeros((self.nrat, self.nfil, self.maxch, self.nlaser))
+#        ecofne = np.zeros((self.nrat, self.nfil, self.maxch, self.nlaser))
         wobg, bg = self.remove_bg()
         wobg = self.remove_str_light(wobg, 0, 11)
         bg = self.remove_str_light(bg, 0, 11)
         err = self.cal_err(wobg, bg, 1)
         ratio = self.make_ratio_wobG(wobg, self.tmd2)
         rerr = self.cal_rerror(err, ratio)
-        te, teerr = self.teanalys(ratio, rerr, ierr=1)
+        te, teerr = self.teanalys(cof, coft, relte, ratio, rerr, ierr=1)
         Adata, AEdata = self.make_RAdata(wobg, err)
         ne, neerr = self.neanalys(te, teerr, cofne, ecofne, Adata, AEdata, ierr=1)
 
@@ -254,7 +266,7 @@ class ThAnalysTeNe():
 
         return wave
 
-    def teanalys(self, ratio, rerr, ierr):
+    def teanalys(self, cof, coft, relte, ratio, rerr, ierr):
         """
         電子温度・誤差を計算する
         :param ratio:
@@ -269,15 +281,6 @@ class ThAnalysTeNe():
         te = np.zeros((self.num_sig, self.maxch))
         teerr = np.zeros((self.num_sig, self.maxch))
 
-        if(self.CALIBorLOAD == 'CALIB'):
-            from TSCalib import TSCalib
-            TSC = TSCalib()
-            coft, cof, relte = TSC.main()
-        else:
-            coft_cof_relte = np.load("coft_cof_relte.npz")
-            coft = coft_cof_relte["coft"]
-            cof = coft_cof_relte["cof"]
-            relte = coft_cof_relte["relte"]
 
         for i in range(self.maxch):
             for j in range(self.num_comb):
@@ -492,7 +495,7 @@ class ThAnalysTeNe():
 
 if __name__ == "__main__":
     start = time.time()
-    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="LOAD", **calib_settings)
+    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="CALIB", **calib_settings)
     TA.main()
     #TA.multiplot()
     elapsed_time = time.time() - start

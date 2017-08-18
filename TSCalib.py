@@ -88,7 +88,6 @@ class TSCalib:
         dTdR = self.cal_dTdR(relte)
         coft, cof = self.cal_cof(dTdR)
 
-        np.savez("coft_cof_relte", coft=coft, cof=cof, relte=relte)
 
         self.calc_calib(clbdata)
 
@@ -97,7 +96,9 @@ class TSCalib:
             for ilaser in range(self.nlaser):
                 self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
 
-        return coft, cof, relte
+        np.savez("coft_cof_relte_cofne_ecofne", coft=coft, cof=cof, relte=relte, cofne=cofne, ecofne=ecofne)
+
+        return coft, cof, relte, cofne, ecofne
 
     def sort_rawdata(self, st_raw, raw, worder):
         """V792のデータ順序を読み取りやすいように入れ替え
