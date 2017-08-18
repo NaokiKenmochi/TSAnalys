@@ -427,8 +427,8 @@ class TSCalib:
         MAXNRAT = 3000
 
         temp1 = self.cross_ram()*calib
-        temp2 = intrelne*self.qt()*self.cof_K2()/YAGRAMD
-        cofne = temp1/temp2
+        temp2 = self.qt()*self.cof_K2()*intrelne.T/YAGRAMD  #要確認
+        cofne = temp1/temp2.T
 
         dx = self.te[1] - self.te[0]
         for ifil in range(self.nfil):
@@ -446,7 +446,7 @@ class TSCalib:
     def qt(self):
         mc2 = 511.0
 
-        it = mc2/self.te
+        it = mc2/self.nte
         beta = np.sqrt(1.0/it)
         is_ = np.cos(self.inj_angle)
         se = np.cos(-np.pi/2.0 + self.inj_angle)
@@ -458,12 +458,13 @@ class TSCalib:
 
     def cof_K2(self):
         mc2 = 511.0
-        it = mc2/self.te
+        it = mc2/self.nte
 
         return 1.0/(2.0*self.bess_K2de(it))
 
     def bess_K2de(self, x):
         coef = np.sqrt(np.pi/2.0/x)
+        temp = 0.0
         for i in range(6):
             body = self.gan(i+2)/self.gan(2-i)
             body /= math.factorial(i)
@@ -476,7 +477,7 @@ class TSCalib:
         if n > 0:
             return self.ganpl(n)
         else:
-            return self.ganmn(n)
+            return self.ganmn(-n)
 
     def ganmn(self, n):
         temp = math.factorial(n)
