@@ -94,7 +94,7 @@ class TSCalib:
         for ich in range(self.maxch):
             self.interp_relne(relne[:, :, ich], intrelne[:, :, ich])
             for ilaser in range(self.nlaser):
-                self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
+                cofne[:, :, ich, ilaser]= self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
 
         np.savez("coft_cof_relte_cofne_ecofne", coft=coft, cof=cof, relte=relte, cofne=cofne, ecofne=ecofne)
 
@@ -255,6 +255,11 @@ class TSCalib:
         return coft, cof
 
     def calc_calib(self, clbdata):
+        """
+        Unit of ne: 10^19 m^{-3}
+        :param clbdata:
+        :return:
+        """
         tfp = 2.0   #threshold parameter
         numfil = np.ones((self.maxch, self.maxlaser))
         numfil *= self.nlaser
@@ -434,6 +439,8 @@ class TSCalib:
         dx = self.te[1] - self.te[0]
         for ifil in range(self.nfil):
             self.differ(cofne[:, ifil], self.nrat, dx, ecofne[:, ifil])
+
+        return cofne#, ecofne
 
 
 

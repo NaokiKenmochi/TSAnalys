@@ -349,6 +349,17 @@ class ThAnalysTeNe():
         return te, teerr
 
     def neanalys(self, te, teerr, cofne, ecofne, Adata, AEdata, ierr):
+        """
+        Unit of ne: 10^19 m^{-3}
+        :param te:
+        :param teerr:
+        :param cofne:
+        :param ecofne:
+        :param Adata:
+        :param AEdata:
+        :param ierr:
+        :return:
+        """
         cne = np.zeros((self.num_sig, self.nfil, self.maxch))
         ecne = np.zeros((self.num_sig, self.nfil, self.maxch))
         nef = np.zeros((self.num_sig, self.nfil, self.maxch))
