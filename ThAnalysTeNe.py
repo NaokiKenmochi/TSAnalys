@@ -454,7 +454,7 @@ class ThAnalysTeNe():
         nRows = 5
         nCols = 6
         fig = plt.figure(figsize=(18, 10))
-        te, teerr = self.main()
+        te, teerr, ne, neerr = self.main()
         te /= 1000
         teerr /= 1000
         majorR = np.loadtxt("MajorR_2015.txt")
@@ -463,8 +463,8 @@ class ThAnalysTeNe():
         ax = fig.add_subplot(nRows, nCols, 1)
         fig.subplots_adjust(hspace=0, wspace=0)
 
-        for j in range(self.num_sig):
-            plt.subplot(nRows, nCols, j+1, sharex=ax, sharey=ax)
+#        for j in range(self.num_sig):
+#            plt.subplot(nRows, nCols, j+1, sharex=ax, sharey=ax)
         # Turn off tick labels where needed.
         index = 0
         for r in range(1, nRows+1):
@@ -475,6 +475,11 @@ class ThAnalysTeNe():
                     ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
                     ax1.legend(fontsize=8)
                     ax1.set_ylabel("Te [keV]")
+#                if((c == nCols) and (index <= self.num_sig)):
+#                    ax2 = ax1.twinx()
+#                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+#                    ax2.legend(fontsize=8)
+#                    ax2.set_ylabel("ne [x10({19} m^{-3}]")
                 if((r == nRows) and (index <= self.num_sig)):
                     ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
                     ax1.legend(fontsize=8)
@@ -486,19 +491,30 @@ class ThAnalysTeNe():
                     ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
                     ax1.legend(fontsize=8)
                     plt.setp(ax1.get_yticklabels(), visible=False)
+#                if((c != nCols + 1) and (index <= self.num_sig)):
+#                    ax2 = ax1.twinx()
+#                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+#                    ax2.legend(fontsize=8)
+#                    plt.setp(ax2.get_yticklabels(), visible=False)
                 # Turn off x tick lables for all but the bottom plot in each column.
                 if((self.num_sig - index) >= nCols):
                     ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                    ax2 = ax1.twinx()
+                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
                     ax1.legend(fontsize=8)
                     plt.setp(ax1.get_xticklabels(), visible=False)
+                    plt.setp(ax2.get_xticklabels(), visible=False)
         for j in range(self.num_sig):
             if(j == nCols):
                 plt.title("Date: %s, Shot No.: %d" % (self.date, self.shotNo), loc='right', fontsize=36, fontname="Times New Roman")
             ax1 = plt.subplot(nRows, nCols, j+1, sharex=ax, sharey=ax)
+            ax2 = ax1.twinx()
             #ax1.plot(majorR, te[j, :], marker='o', ls='None', label="%d ms" % (40 + 10*j))
             ax1.errorbar(majorR, te[j, :], fmt='o', ls='None', yerr=teerr[j, :], label="%d ms" % (40 + 10*j))
+            ax2.errorbar(majorR, ne[j, :], fmt='o', ls='None', yerr=neerr[j, :], color="r")
             ax1.legend(fontsize=8)
             ax1.set_ylim(0, 4)
+            ax2.set_ylim(0, 5e-3)
             ax1.set_xlim(1.02, 1.35)
 
         plt.show()
@@ -506,8 +522,8 @@ class ThAnalysTeNe():
 
 if __name__ == "__main__":
     start = time.time()
-    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="CALIB", **calib_settings)
+    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="LOAD", **calib_settings)
     TA.main()
-    #TA.multiplot()
+    TA.multiplot()
     elapsed_time = time.time() - start
     print("elapsed_time:{0}".format(elapsed_time) + "[sec]")
