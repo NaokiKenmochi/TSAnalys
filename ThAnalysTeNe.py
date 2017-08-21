@@ -103,8 +103,11 @@ class ThAnalysTeNe():
         self.tmds = 1.0e-20     #密度計測の閾値
         self.num_comb = int(self.ll*(self.ll-1)/2)
         self.num_ratio = int((self.nfil - 1) * self.nfil / 2)  # チャンネルの信号比の組み合わせ数
-        self.te = np.exp(np.log(10000) * np.arange(self.ntct)/(self.ntct-1))  # 計算温度範囲[eV] ntctと同数
-        self.nte = np.exp(np.log(10000) * np.arange(self.nrat)/(self.nrat-1))  # 計算温度範囲[eV] nratと同数
+        self.temax = 10000  #[eV]
+        self.temin = 10 #[eV]
+        self.te = np.exp(np.log(self.temax) * np.arange(self.ntct)/(self.ntct-1))  # 計算温度範囲[eV] ntctと同数
+        #        self.nte = self.cal_Te(self.nrat)   # 計算温度範囲[eV] nratと同数
+        self.nte = np.exp(np.log(self.temax) * np.arange(self.nrat)/(self.nrat-1))      # 計算温度範囲[eV] nratと同数
         self.PONUM = 2   #YAGレーザーのパワーを計測しているポリクロ番号
         self.CH = 6  #YAGレーザーのパワーを計測しているポリクロのチャンネル番号
         self.THRE = 1.0
@@ -491,19 +494,17 @@ class ThAnalysTeNe():
                     ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
                     ax1.legend(fontsize=8)
                     plt.setp(ax1.get_yticklabels(), visible=False)
-#                if((c != nCols + 1) and (index <= self.num_sig)):
-#                    ax2 = ax1.twinx()
-#                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
-#                    ax2.legend(fontsize=8)
-#                    plt.setp(ax2.get_yticklabels(), visible=False)
+                if((c != nCols + 1) and (index <= self.num_sig)):
+                    ax2 = ax1.twinx()
+                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                    ax2.legend(fontsize=8)
+#                    ax2.set_yticklabels(())
+                    plt.setp(ax2.get_yticklabels(), visible=False)
                 # Turn off x tick lables for all but the bottom plot in each column.
                 if((self.num_sig - index) >= nCols):
                     ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
-                    ax2 = ax1.twinx()
-                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
                     ax1.legend(fontsize=8)
                     plt.setp(ax1.get_xticklabels(), visible=False)
-                    plt.setp(ax2.get_xticklabels(), visible=False)
         for j in range(self.num_sig):
             if(j == nCols):
                 plt.title("Date: %s, Shot No.: %d" % (self.date, self.shotNo), loc='right', fontsize=36, fontname="Times New Roman")
@@ -512,18 +513,95 @@ class ThAnalysTeNe():
             #ax1.plot(majorR, te[j, :], marker='o', ls='None', label="%d ms" % (40 + 10*j))
             ax1.errorbar(majorR, te[j, :], fmt='o', ls='None', yerr=teerr[j, :], label="%d ms" % (40 + 10*j))
             ax2.errorbar(majorR, ne[j, :], fmt='o', ls='None', yerr=neerr[j, :], color="r")
+            plt.setp(ax2.get_yticklabels(), visible=False)
             ax1.legend(fontsize=8)
             ax1.set_ylim(0, 4)
-            ax2.set_ylim(0, 5e-3)
+            ax2.set_ylim(0, 2e-5)
             ax1.set_xlim(1.02, 1.35)
 
         plt.show()
 
+    def multiplot_sepTeNe(self):
+        """
+        解析データをタイミング毎にならべてプロットする
+        とりあえず温度の解析データのみ
+        :return:
+        """
+        nRows = 10
+        nCols = 6
+        fig = plt.figure(figsize=(18, 10))
+        te, teerr, ne, neerr = self.main()
+        te /= 1000
+        teerr /= 1000
+        majorR = np.loadtxt("MajorR_2015.txt")
+        majorR /= 1000
+
+        ax = fig.add_subplot(nRows, nCols, 1)
+        fig.subplots_adjust(hspace=0, wspace=0)
+
+        #        for j in range(self.num_sig):
+        #            plt.subplot(nRows, nCols, j+1, sharex=ax, sharey=ax)
+        # Turn off tick labels where needed.
+        index = 0
+        for r in range(1, nRows+1):
+            for c in range(1, nCols+1):
+                index += 1
+                # Turn off y tick labels for all but the first column.
+                if((c == 1) and (index <= self.num_sig)):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                    ax1.legend(fontsize=8)
+                    ax1.set_ylabel("Te [keV]")
+                #                if((c == nCols) and (index <= self.num_sig)):
+                #                    ax2 = ax1.twinx()
+                #                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                #                    ax2.legend(fontsize=8)
+                #                    ax2.set_ylabel("ne [x10({19} m^{-3}]")
+                if((r == nRows) and (index <= self.num_sig)):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                    ax1.legend(fontsize=8)
+                    #                    ticks = ax1.set_xticks([1.0, 1.1, 1.2, 1.3, 1.4])
+                    #ax1.set_xticklabels(majorR, rotation = 45)
+                    #ax1.set_xticklabels([1.1, 1.2, 1.3])
+                    ax1.set_xlabel("Major R [m]")
+                if((c != 1) and (index <= self.num_sig)):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                    ax1.legend(fontsize=8)
+                    plt.setp(ax1.get_yticklabels(), visible=False)
+                if((c != nCols + 1) and (index <= self.num_sig)):
+                    ax2 = ax1.twinx()
+                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                    ax2.legend(fontsize=8)
+                    #                    ax2.set_yticklabels(())
+                    plt.setp(ax2.get_yticklabels(), visible=False)
+                # Turn off x tick lables for all but the bottom plot in each column.
+                if((self.num_sig - index) >= nCols):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                    ax1.legend(fontsize=8)
+                    plt.setp(ax1.get_xticklabels(), visible=False)
+        for j in range(self.num_sig):
+            if(j == nCols):
+                plt.title("Date: %s, Shot No.: %d" % (self.date, self.shotNo), loc='right', fontsize=36, fontname="Times New Roman")
+            for k in range(2):
+                if k == 0:
+                    ax1 = plt.subplot(nRows, nCols, 2*nCols*k+j+1, sharex=ax, sharey=ax)
+                    ax1.errorbar(majorR, te[j, :], fmt='o', ls='None', yerr=teerr[j, :], label="%d ms" % (40 + 10*j))
+                    #ax1.plot(majorR, te[j, :], marker='o', ls='None', label="%d ms" % (40 + 10*j))
+                else:
+                    ax2 = plt.subplot(nRows, nCols, (2*nCols*k+1)+j+1, sharex=ax, sharey=ax)
+                    ax2.errorbar(majorR, ne[j, :], fmt='o', ls='None', yerr=neerr[j, :], color="r")
+
+            plt.setp(ax2.get_yticklabels(), visible=False)
+            ax1.legend(fontsize=8)
+            ax1.set_ylim(0, 4)
+            ax2.set_ylim(0, 2e-5)
+            ax1.set_xlim(1.02, 1.35)
+
+        plt.show()
 
 if __name__ == "__main__":
     start = time.time()
     TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="LOAD", **calib_settings)
     TA.main()
-    TA.multiplot()
+    TA.multiplot_sepTeNe()
     elapsed_time = time.time() - start
     print("elapsed_time:{0}".format(elapsed_time) + "[sec]")

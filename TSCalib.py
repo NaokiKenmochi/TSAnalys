@@ -70,7 +70,8 @@ class TSCalib:
         self.temax = 10000  #[eV]
         self.temin = 10 #[eV]
         self.te = np.exp(np.log(self.temax) * np.arange(self.ntct)/(self.ntct-1))  # 計算温度範囲[eV] ntctと同数
-        self.nte = self.cal_Te(self.nrat)   #np.exp(np.log(self.temax) * np.arange(self.nrat)/(self.nrat-1))  # 計算温度範囲[eV] nratと同数
+#        self.nte = self.cal_Te(self.nrat)   # 計算温度範囲[eV] nratと同数
+        self.nte = np.exp(np.log(self.temax) * np.arange(self.nrat)/(self.nrat-1))      # 計算温度範囲[eV] nratと同数
         #self.PATH = '/Users/kemmochi/SkyDrive/Document/Study/Thomson/DATE/Polychrometer/Data/data of polychrometors for calibration/2016/'
         self.PATH = ''
         self.FILE_NAME = 'w_for_alignment_Aug2016.txt'
@@ -318,7 +319,7 @@ class TSCalib:
 
     def splint(self, xa, ya, y2a, n, x):
         klo = 0
-        khi = n
+        khi = n - 1
         while khi - klo > 1:
             k = (khi + klo)/2.0
             if(xa[k] > x):
