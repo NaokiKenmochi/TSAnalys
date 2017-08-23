@@ -547,53 +547,62 @@ class ThAnalysTeNe():
             for c in range(1, nCols+1):
                 index += 1
                 # Turn off y tick labels for all but the first column.
-                if((c == 1) and (index <= self.num_sig)):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                if(r%2==0 and (c == 1) and (index <= 2*self.num_sig)):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
                     ax1.legend(fontsize=8)
                     ax1.set_ylabel("Te [keV]")
-                #                if((c == nCols) and (index <= self.num_sig)):
-                #                    ax2 = ax1.twinx()
-                #                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
-                #                    ax2.legend(fontsize=8)
-                #                    ax2.set_ylabel("ne [x10({19} m^{-3}]")
-                if((r == nRows) and (index <= self.num_sig)):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                if(r%2==1 and (c == 1) and (index <= 2*self.num_sig)):
+                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                    ax2.legend(fontsize=8)
+                    ax2.set_ylabel("ne []")
+                if(r%2==0 and (r == nRows) and (index <= 2*self.num_sig)):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
                     ax1.legend(fontsize=8)
-                    #                    ticks = ax1.set_xticks([1.0, 1.1, 1.2, 1.3, 1.4])
-                    #ax1.set_xticklabels(majorR, rotation = 45)
-                    #ax1.set_xticklabels([1.1, 1.2, 1.3])
                     ax1.set_xlabel("Major R [m]")
-                if((c != 1) and (index <= self.num_sig)):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                if(r%2==0 and (c != 1) and (index <= 2*self.num_sig)):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
                     ax1.legend(fontsize=8)
                     plt.setp(ax1.get_yticklabels(), visible=False)
-                if((c != nCols + 1) and (index <= self.num_sig)):
-                    ax2 = ax1.twinx()
-                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                if(r%2==1 and (c != 1) and (index <= 2*self.num_sig)):
+                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
                     ax2.legend(fontsize=8)
-                    #                    ax2.set_yticklabels(())
                     plt.setp(ax2.get_yticklabels(), visible=False)
+#                if(r%2==1 and (c != nCols + 1) and (index <= 2*self.num_sig)):
+#                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+#                    ax2.legend(fontsize=8)
+#                    #                    ax2.set_yticklabels(())
+#                    plt.setp(ax2.get_yticklabels(), visible=False)
                 # Turn off x tick lables for all but the bottom plot in each column.
-                if((self.num_sig - index) >= nCols):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax, sharey=ax)
+                if(r%2==0 and (self.num_sig - index) >= nCols):
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
                     ax1.legend(fontsize=8)
                     plt.setp(ax1.get_xticklabels(), visible=False)
-        for j in range(self.num_sig):
-            if(j == nCols):
-                plt.title("Date: %s, Shot No.: %d" % (self.date, self.shotNo), loc='right', fontsize=36, fontname="Times New Roman")
-            for k in range(2):
-                if k == 0:
-                    ax1 = plt.subplot(nRows, nCols, 2*nCols*k+j+1, sharex=ax, sharey=ax)
-                    ax1.errorbar(majorR, te[j, :], fmt='o', ls='None', yerr=teerr[j, :], label="%d ms" % (40 + 10*j))
+                if(r%2==1 and (self.num_sig - index) >= nCols):
+                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                    ax2.legend(fontsize=8)
+                    plt.setp(ax2.get_xticklabels(), visible=False)
+        i = 0
+        j = 0
+        index = 0
+        for r in range(1, nRows+1):
+            for c in range(1, nCols+1):
+                index += 1
+                if(index == nCols + 1):
+                    plt.title("Date: %s, Shot No.: %d" % (self.date, self.shotNo), loc='right', fontsize=36, fontname="Times New Roman")
+                if r%2 == 0:
+                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax1)
+                    ax1.errorbar(majorR, te[i, :], fmt='o', ls='None', yerr=teerr[i, :], label="%d ms" % (40 + 10*i))
                     #ax1.plot(majorR, te[j, :], marker='o', ls='None', label="%d ms" % (40 + 10*j))
+                    ax1.set_ylim(0, 4)
+                    i += 1
                 else:
-                    ax2 = plt.subplot(nRows, nCols, (2*nCols*k+1)+j+1, sharex=ax, sharey=ax)
+                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
                     ax2.errorbar(majorR, ne[j, :], fmt='o', ls='None', yerr=neerr[j, :], color="r")
+                    ax2.set_ylim(0, 2e-5)
+                    j += 1
 
-            plt.setp(ax2.get_yticklabels(), visible=False)
+#            plt.setp(ax2.get_yticklabels(), visible=False)
             ax1.legend(fontsize=8)
-            ax1.set_ylim(0, 4)
-            ax2.set_ylim(0, 2e-5)
             ax1.set_xlim(1.02, 1.35)
 
         plt.show()
