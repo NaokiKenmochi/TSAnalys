@@ -26,7 +26,7 @@ class TSCalib:
         self.m = 2
         self.tt = 297.15  # 較正時のガス温度
         self.maxdata = 160  # 最大取り込みチャンネル数
-        self.inj_angle = np.pi / 9  # 入射角度[rad]
+        self.inj_angle = np.pi*8/ 9  # 入射角度[rad]
         self.worder = np.array([  # V792のデータ順を並び替える配列
                       0, 2, 4, 6, 8, 10,
                       12, 14, 16, 18, 20, 22,
@@ -95,7 +95,7 @@ class TSCalib:
         for ich in range(self.maxch):
             self.interp_relne(relne[:, :, ich], intrelne[:, :, ich])
             for ilaser in range(self.nlaser):
-                cofne[:, :, ich, ilaser]= self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
+                cofne[:, :, ich, ilaser] = self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
 
         np.savez("coft_cof_relte_cofne_ecofne", coft=coft, cof=cof, relte=relte, cofne=cofne, ecofne=ecofne)
 

@@ -19,7 +19,7 @@ calib_settings = {
     'num_sig': 30,  #散乱光の取り込み数
     'TT': 297.15,  # 較正時のガス温度
     'maxdata': 160,  # 最大取り込みチャンネル数
-    'inj_angle': np.pi / 9,  # 入射角度[rad]
+    'inj_angle': np.pi*8/ 9,  # 入射角度[rad]
     'init_wlength': 685,  # モノクロメータの初期波長[nm]
     'worder': np.array([  # V792のデータ順を並び替える配列
         0, 2, 4, 6, 8, 10,
@@ -543,47 +543,8 @@ class ThAnalysTeNe():
         #            plt.subplot(nRows, nCols, j+1, sharex=ax, sharey=ax)
         # Turn off tick labels where needed.
         index = 0
-        for r in range(1, nRows+1):
-            for c in range(1, nCols+1):
-                index += 1
-                # Turn off y tick labels for all but the first column.
-                if(r%2==0 and (c == 1) and (index <= 2*self.num_sig)):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax1.legend(fontsize=8)
-                    ax1.set_ylabel("Te [keV]")
-                if(r%2==1 and (c == 1) and (index <= 2*self.num_sig)):
-                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax2.legend(fontsize=8)
-                    ax2.set_ylabel("ne []")
-                if(r%2==0 and (r == nRows) and (index <= 2*self.num_sig)):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax1.legend(fontsize=8)
-                    ax1.set_xlabel("Major R [m]")
-                if(r%2==0 and (c != 1) and (index <= 2*self.num_sig)):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax1.legend(fontsize=8)
-                    plt.setp(ax1.get_yticklabels(), visible=False)
-                if(r%2==1 and (c != 1) and (index <= 2*self.num_sig)):
-                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax2.legend(fontsize=8)
-                    plt.setp(ax2.get_yticklabels(), visible=False)
-#                if(r%2==1 and (c != nCols + 1) and (index <= 2*self.num_sig)):
-#                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-#                    ax2.legend(fontsize=8)
-#                    #                    ax2.set_yticklabels(())
-#                    plt.setp(ax2.get_yticklabels(), visible=False)
-                # Turn off x tick lables for all but the bottom plot in each column.
-                if(r%2==0 and (self.num_sig - index) >= nCols):
-                    ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax1.legend(fontsize=8)
-                    plt.setp(ax1.get_xticklabels(), visible=False)
-                if(r%2==1 and (self.num_sig - index) >= nCols):
-                    ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax2.legend(fontsize=8)
-                    plt.setp(ax2.get_xticklabels(), visible=False)
         i = 0
         j = 0
-        index = 0
         for r in range(1, nRows+1):
             for c in range(1, nCols+1):
                 index += 1
@@ -593,19 +554,50 @@ class ThAnalysTeNe():
                     ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax1)
                     ax1.errorbar(majorR, te[i, :], fmt='o', ls='None', yerr=teerr[i, :], label="%d ms" % (40 + 10*i))
                     #ax1.plot(majorR, te[j, :], marker='o', ls='None', label="%d ms" % (40 + 10*j))
-                    ax1.set_ylim(0, 4)
+                    ax1.set_ylim(0, 0.1)
                     i += 1
+                    if((c == 1) and (index <= 2*self.num_sig)):
+                        ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                        ax1.legend(fontsize=8)
+                        ax1.set_ylabel("Te [keV]")
+                    if((r == nRows) and (index <= 2*self.num_sig)):
+                        ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                        ax1.legend(fontsize=8)
+                        ax1.set_xlabel("Major R [m]")
+                    if((c != 1) and (index <= 2*self.num_sig)):
+                        ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                        ax1.legend(fontsize=8)
+                        plt.setp(ax1.get_yticklabels(), visible=False)
+                # Turn off x tick lables for all but the bottom plot in each column.
+                    if((2*self.num_sig - index) >= nCols):
+                        ax1 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                        ax1.legend(fontsize=8)
+                        plt.setp(ax1.get_xticklabels(), visible=False)
                 else:
                     ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
-                    ax2.errorbar(majorR, ne[j, :], fmt='o', ls='None', yerr=neerr[j, :], color="r")
-                    ax2.set_ylim(0, 2e-5)
+                    ax2.errorbar(majorR, ne[j, :], fmt='o', ls='None', yerr=neerr[j, :], color="r", label="%d ms" % (40 + 10*j))
+                    ax2.set_ylim(0, 2e-6)
                     j += 1
+                # Turn off y tick labels for all but the first column.
+                    if((c == 1) and (index <= 2*self.num_sig)):
+                        ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                        ax2.legend(fontsize=8)
+                        ax2.set_ylabel("ne []")
+                    if((c != 1) and (index <= 2*self.num_sig)):
+                        ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                        ax2.legend(fontsize=8)
+                        plt.setp(ax2.get_yticklabels(), visible=False)
+                    if((2*self.num_sig - index) >= nCols):
+                        ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
+                        ax2.legend(fontsize=8)
+                        plt.setp(ax2.get_xticklabels(), visible=False)
+        ax1.set_xlim(1.02, 1.35)
 
-#            plt.setp(ax2.get_yticklabels(), visible=False)
-            ax1.legend(fontsize=8)
-            ax1.set_xlim(1.02, 1.35)
+        filename = "TeNe_%s_%d.pdf" % (self.date, self.shotNo)
+        plt.savefig(filename)
+        print("Save graph to " + filename)
 
-        plt.show()
+#        plt.show()
 
 if __name__ == "__main__":
     start = time.time()
