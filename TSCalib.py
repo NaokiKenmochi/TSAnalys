@@ -3,6 +3,8 @@ from scipy import integrate
 from RSCalib import RSCalib
 import matplotlib.pyplot as plt
 import math
+from scipy.interpolate import interp1d
+from scipy.interpolate import splint
 np.seterr(divide='ignore', invalid='ignore')
 
 class TSCalib:
@@ -219,7 +221,7 @@ class TSCalib:
                     else:
                         relte[j, k, i] = int_clbdata[j, self.i1[k], i]/int_clbdata[j, self.i2[k], i]
 
-        relne = np.abs(int_clbdata[:, :self.nfil, :]).reshape((self.ntct, self.nfil, self.maxch))
+        relne = np.abs(int_clbdata[:, :self.nfil, :]).transpose(2, 1, 0)#.reshape((self.ntct, self.nfil, self.maxch))
         #        return int_clbdata
 #        plt.ylim(0, 1e3)
         #plt.plot(rrelte[:, 50])
@@ -310,7 +312,9 @@ class TSCalib:
             yp1 = 0.0
             ypn = 0.0
             for ifil in range(self.nfil):
-                 self.spline(sramd, clbdata[:, ich, ifil], self.maxword, yp1, ypn, dfilter[:, ich, ifil])
+                self.spline(sramd, clbdata[:, ich, ifil], self.maxword, yp1, ypn, dfilter[:, ich, ifil])
+                #f = interp1d(sramd, clbdata[:, ich, ifil], kind='cubic')
+                #dfilter[:, ich, ifil] = f()
 
         return dfilter
 
@@ -442,9 +446,12 @@ class TSCalib:
         #relne2 = np.zeros(self.ntct)
 
         for ifil in range(self.nfil):
-            self.spline(self.te, relne[:, ifil], self.ntct, yp1, ypn, relne2)
+            #self.spline(self.te, relne[:, ifil], self.ntct, yp1, ypn, relne2)
+            f1 = interp1d(self.te, relne[:, ifil], kind='cubic')
+            relne2 = f1(self.nte)
             #plt.plot(relne2)
-            #plt.xlim(0,100)
+            #plt.plot(relne[:, ifil])
+            ##plt.xlim(0,100)
             #plt.show()
             for nr in range(self.nrat):
                 intrelne[nr, ifil] = self.splint(self.te, relne[:, ifil], relne2, self.ntct, self.nte[nr])

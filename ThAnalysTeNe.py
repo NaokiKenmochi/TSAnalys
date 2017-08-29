@@ -576,7 +576,7 @@ class ThAnalysTeNe():
                 else:
                     ax2 = plt.subplot(nRows, nCols, index, sharex=ax)#, sharey=ax)
                     ax2.errorbar(majorR, ne[j, :], fmt='o', ls='None', yerr=neerr[j, :], color="r", label="%d ms" % (40 + 10*j))
-                    ax2.set_ylim(0, 2e-6)
+                    ax2.set_ylim(0, 2e-5)
                     j += 1
                 # Turn off y tick labels for all but the first column.
                     if((c == 1) and (index <= 2*self.num_sig)):
