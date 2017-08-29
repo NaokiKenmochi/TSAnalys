@@ -26,6 +26,9 @@ class TSCalib:
         self.m = 2
         self.tt = 297.15  # 較正時のガス温度
         self.maxdata = 160  # 最大取り込みチャンネル数
+        ##################################
+        ##  視線毎の角度に変更する必要あり
+        ##################################
         self.inj_angle = np.pi*8/ 9  # 入射角度[rad]
         self.worder = np.array([  # V792のデータ順を並び替える配列
                       0, 2, 4, 6, 8, 10,
@@ -94,6 +97,9 @@ class TSCalib:
 
         for ich in range(self.maxch):
             self.interp_relne(relne[:, :, ich], intrelne[:, :, ich])
+            #plt.plot(relne[:,2,ich])
+            #plt.plot(intrelne[:,2,ich])
+            #plt.show()
             for ilaser in range(self.nlaser):
                 cofne[:, :, ich, ilaser] = self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
 
@@ -333,7 +339,8 @@ class TSCalib:
         if(np.abs(y2a[klo]) > 1.0e33):
             y = (ya[klo] + ya[khi])/2.0
 
-        y = a*ya[klo] + b*ya[khi] + ((a**3 - a)*y2a[klo] + (b**3-b)*y2a[khi])*h**2/6.0
+        else:
+            y = a*ya[klo] + b*ya[khi] + ((a**3 - a)*y2a[klo] + (b**3-b)*y2a[khi])*h**2/6.0
 
         return y
 
@@ -343,16 +350,23 @@ class TSCalib:
         if(yp1 > 0.99e30):
             y2[0] = 0.0
             u[0] = 0.0
-        #else:
-        elif(x[1]-x[0] != 0):
+        else:
+        #elif(x[1]-x[0] != 0):
             y2[0] = -0.5
             u[0] = (3.0/(x[1] - x[0]))*((y[1] - y[0])/(x[1] - x[0]) - yp1)
 
-        sig = (x[1:n-2] - x[0:n-3])/(x[2:n-1] - x[0:n-3])
-        p = sig*y2[0:n-3] + 2.0
-        y2[1:n-2] = (sig - 1.0)/p
-        u[1:n-2] = (y[2:n-1] - y[1:n-2])/(x[2:n-1] - x[1:n-2]) - (y[1:n-2] - y[0:n-3])/(x[1:n-2] - x[0:n-3])
-        u[1:n-2] = (6.0*u[1:n-2]/(x[2:n-1] - x[0:n-3]) - sig*u[0:n-3])/p
+        for i in range(n-1):
+            sig = (x[i] - x[i-1])/(x[i+1] - x[i-1])
+            p = sig*y2[i-1] + 2.0
+            y2[i] = (sig - 1.0)/p
+            u[i] = (y[i+1] - y[i])/(x[i+1] - x[i]) - (y[i] - y[i-1])/(x[i] - x[i-1])
+            u[i] = (6.0*u[i]/(x[i+1] - x[i-1]) - sig*u[i-1])/p
+
+        #sig = (x[1:n-2] - x[0:n-3])/(x[2:n-1] - x[0:n-3])
+        #p = sig*y2[0:n-3] + 2.0
+        #y2[1:n-2] = (sig - 1.0)/p
+        #u[1:n-2] = (y[2:n-1] - y[1:n-2])/(x[2:n-1] - x[1:n-2]) - (y[1:n-2] - y[0:n-3])/(x[1:n-2] - x[0:n-3])
+        #u[1:n-2] = (6.0*u[1:n-2]/(x[2:n-1] - x[0:n-3]) - sig*u[0:n-3])/p
 
         if(ypn > 0.99e30):
             qn = 0.0
@@ -363,7 +377,9 @@ class TSCalib:
 
         y2[n-1] = (un - qn*u[n-2])/(qn*y2[n-2] + 1.0)
 
-        y2[0:n-2] = y2[0:n-2]*y2[1:n-1] + u[0:n-2]
+        for i in reversed(range(n-1)):
+            y2[i] = y2[i]*y2[i+1] + u[i]
+        #y2[0:n-2] = y2[0:n-2]*y2[1:n-1] + u[0:n-2]
 
 
     def get_cross(self):
@@ -419,13 +435,17 @@ class TSCalib:
 
     def interp_relne(self, relne, intrelne):
         maxntct = 2000
-        maxnrat = 3000
+        #maxnrat = 3000
         yp1 = 1.0e31
         ypn = 1.0e31
         relne2 = np.zeros(maxntct)
+        #relne2 = np.zeros(self.ntct)
 
         for ifil in range(self.nfil):
             self.spline(self.te, relne[:, ifil], self.ntct, yp1, ypn, relne2)
+            #plt.plot(relne2)
+            #plt.xlim(0,100)
+            #plt.show()
             for nr in range(self.nrat):
                 intrelne[nr, ifil] = self.splint(self.te, relne[:, ifil], relne2, self.ntct, self.nte[nr])
 

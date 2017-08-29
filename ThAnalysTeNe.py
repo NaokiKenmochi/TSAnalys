@@ -601,7 +601,7 @@ class ThAnalysTeNe():
 
 if __name__ == "__main__":
     start = time.time()
-    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="LOAD", **calib_settings)
+    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="CALIB", **calib_settings)
     TA.main()
     TA.multiplot_sepTeNe()
     elapsed_time = time.time() - start
