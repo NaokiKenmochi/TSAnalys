@@ -68,8 +68,8 @@ class ThAnalysTeNe():
         self.date = date    #計測日時 yyyymmdd形式
         self.shotNo = shotNo    #ショット番号
         self.CALIBorLOAD = CALIBorLOAD  #較正係数を新たに計算するかロードするか
-        #self.PATH = '/Users/kemmochi/SkyDrive/Document/Study/Thomson/DATE/Scattered Light/'
-        self.PATH = ''
+        self.PATH = '/Users/kemmochi/SkyDrive/Document/Study/Thomson/DATE/Scattered Light/'
+        #self.PATH = ''
 
         """較正のための初期値設定
         """
@@ -210,11 +210,13 @@ class ThAnalysTeNe():
         #plt.show()
 
         Adata = Adata[:, :self.maxdata-10].reshape((self.num_sig, self.maxch, self.nfil+1))   #(Adata[:, :150], (3, 6, 25))
-        AEdata = Adata[:, :self.maxdata-10].reshape((self.num_sig, self.maxch, self.nfil+1))   #(Adata[:, :150], (3, 6, 25))
+        AEdata = AEdata[:, :self.maxdata-10].reshape((self.num_sig, self.maxch, self.nfil+1))   #(Adata[:, :150], (3, 6, 25))
         Adata = Adata[:, :, :self.nfil]
         AEdata = AEdata[:, :, :self.nfil]
         Adata = np.transpose(Adata, (0, 2, 1))
         AEdata = np.transpose(AEdata, (0, 2, 1))
+        #plt.plot(Adata[:, :, 12])
+        #plt.show()
 
         return Adata, AEdata
 
@@ -242,8 +244,8 @@ class ThAnalysTeNe():
         err = np.zeros((self.num_sig, self.maxdata))
         rate = np.zeros((self.num_sig, 375))
         RErr = np.zeros((self.num_sig, 375))
-#        rwdata = np.loadtxt(self.PATH + "%d/%d/Th_Raw_HJ%d.txt" % (int(self.date/10000), self.date-20000000, self.shotNo), comments='#')
-        rwdata = np.loadtxt(self.PATH + "Th_Raw_HJ%d.txt" % (self.shotNo), comments='#')
+        rwdata = np.loadtxt(self.PATH + "%d/%d/Th_Raw_HJ%d.txt" % (int(self.date/10000), self.date-20000000, self.shotNo), comments='#')
+#        rwdata = np.loadtxt(self.PATH + "Th_Raw_HJ%d.txt" % (self.shotNo), comments='#')
         st_rwdata = self.sort_rawdata(rwdata)
         for i in range(self.num_sig):
             #bg[i] = (st_rwdata[4 * i + 1] + st_rwdata[4 * i + 2] + st_rwdata[4 * i + 3]) / 3
@@ -601,7 +603,7 @@ class ThAnalysTeNe():
 
 if __name__ == "__main__":
     start = time.time()
-    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="CALIB", **calib_settings)
+    TA = ThAnalysTeNe(date=20161117, shotNo=64404, CALIBorLOAD="LOAD", **calib_settings)
     TA.main()
     TA.multiplot_sepTeNe()
     elapsed_time = time.time() - start

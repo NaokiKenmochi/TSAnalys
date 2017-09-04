@@ -106,6 +106,10 @@ class TSCalib:
                 cofne[:, :, ich, ilaser] = self.cal_ne_cof(intrelne[:, :, ich], clbdata[ich, ilaser], cofne[:, :, ich, ilaser], ecofne[:, :, ich, ilaser])
 
         np.savez("coft_cof_relte_cofne_ecofne", coft=coft, cof=cof, relte=relte, cofne=cofne, ecofne=ecofne)
+        #plt.plot(self.nte, cofne[:, :, 12, 1])
+        plt.plot(cofne[:, :, 12, 1])
+        plt.ylim(0,100)
+        plt.show()
 
         return coft, cof, relte, cofne, ecofne
 
@@ -451,7 +455,7 @@ class TSCalib:
             relne2 = f1(self.nte)
             #plt.plot(relne2)
             #plt.plot(relne[:, ifil])
-            ##plt.xlim(0,100)
+            #plt.xlim(0,100)
             #plt.show()
             for nr in range(self.nrat):
                 intrelne[nr, ifil] = self.splint(self.te, relne[:, ifil], relne2, self.ntct, self.nte[nr])
