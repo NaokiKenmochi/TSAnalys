@@ -174,7 +174,7 @@ class TSCalib:
         wlength = np.arange(self.maxword) + self.init_wlength  # 較正波長領域[nm]
 
         w2 = 1064 / wlength
-        x = 51193 / self.te
+        x = 511193 / self.te
         x = x[np.newaxis, :]
 
         #        K2 = ((x / (2 * 3.14159265358979)) ** 0.5) * np.exp(x) * (1 + (15 / (8 * x)))
@@ -186,7 +186,10 @@ class TSCalib:
             w2) - x.T * np.sqrt(1 + ((w2 - 1) ** 2) / (2 * w2 * (1 - IS))) - 0.5 * np.log(1 - 2 * w2 * IS + w2 ** 2)
         w1 = np.exp(w1)
 
-        #        plt.plot(w1[80,:])
+        plt.plot(wlength, w1[80,:])
+        plt.plot(wlength, w1[20,:])
+        plt.plot(wlength, w1[50,:])
+        plt.show()
         #        plt.contourf(np.log(w1+1))
         return w1
 
@@ -543,7 +546,8 @@ class TSCalib:
 
 if __name__ == "__main__":
     test = TSCalib(LOADorCALC="LOAD")
-    test.main()
-    test.get_cross()
+    test.thomson_shape()
+    #test.main()
+    #test.get_cross()
 
     print("Successfully Run the program !!")
